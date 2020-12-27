@@ -1,0 +1,262 @@
+Sub CombinedSheets()
+'Clears the combined worksheet
+Sheets("Combined").Range("a1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).ClearFormats
+Sheets("Combined").Range("A2:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).ClearContents
+      
+Dim LastRowCounter, LastRow As Long
+
+'Initializes a counter to find the last row of the Combined sheet
+LastRowCounter = 1
+
+'loop through each sheet for contents needed
+For Each ws In Worksheets
+
+    'finds the last row with content for each sheet
+    LastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+
+    'copies all data from one worksheet and pastes it to the Combined worksheet
+    ws.Range("A2:G" & LastRow).Copy Destination:=Sheets("Combined").Range("A" & (LastRowCounter + 1))
+
+    'Increments the LastRowCounter to track where to paste the next sheets contents in the next loop of the for
+LastRowCounter = LastRow - 1 + LastRowCounter
+
+Next ws
+Sheets("Combined").Range("A1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).Columns.AutoFit
+End Sub
+Sub TickerYearlyPercentage()
+
+Dim CB As String
+
+Dim YearOpenValue, YearCloseValue, YearlyChange, LastRow As Double
+
+'Initializes variables to store the year open value of a stock to the year end closing value of a stock
+YearOpenValue = 0
+
+YearOpenValue = 0
+
+'Initializes a Variable to calculate the yearly change for a stock
+YearlyChange = 0
+
+'This counter is used to track where to paste the ticker symbol of each cell in column I in the Combined sheet
+TickerCellCount = 2
+
+'creates object variable for the Combined sheet object
+CB = "Combined"
+
+'finds last row of combined sheet
+LastRow = Sheets(CB).Cells(Rows.Count, 1).End(xlUp).Row
+
+'scans through the ticker symbols in each worksheet checks to see
+'if the tickers are different and assigns the unqiue symbol to column I in the Combined worksheet
+For i = 2 To LastRow
+    
+    'grabs ticker symbol from 1st cell
+    Ticker1 = Sheets(CB).Range("A" & i).Value
+    
+    'grabs ticker ticker symbol from 2nd cell
+    Ticker2 = Sheets(CB).Range("A" & (i + 1)).Value
+    
+    'grabs first YearOpenValue for the first ticker symbol
+     If i = 2 Then
+        YearOpenValue = Sheets(CB).Range("C2").Value
+     End If
+    
+    'compares if the ticker symbols are different
+    If Ticker1 <> Ticker2 Then
+    
+            'Grabs the close value for the Ticker1
+            YearCloseValue = Sheets(CB).Range("F" & i).Value
+            
+            'Calculates the yearly change per unique stock
+            YearlyChange = YearCloseValue - YearOpenValue
+            
+            'Calculates the percentage change per unique stock
+            If YearOpenValue <> 0 Then
+                PercentageChange = (YearCloseValue - YearOpenValue) / YearOpenValue
+            End If
+    
+            'Copies the unique Ticker symbols per sheet into the I column in the Combined worksheet
+            Sheets(CB).Range("A" & i).Copy Destination:=Sheets(CB).Range("I" & TickerCellCount)
+            
+            'Stores yearly change in J column of the Combined sheet
+            Sheets(CB).Range("J" & TickerCellCount) = FormatCurrency(YearlyChange)
+            
+            'Stores percentage change in K column of the Combined sheet
+            Sheets(CB).Range("K" & TickerCellCount) = FormatPercent(PercentageChange)
+            
+            'Grabs the open value for the Ticker2
+            YearOpenValue = Sheets(CB).Range("C" & (i + 1)).Value
+            
+            'Increments TickerCell count to track where to paste the next worksheet's ticker symbol on the Combined sheet in the next loop of the for
+            TickerCellCount = TickerCellCount + 1
+    End If
+         
+Next i
+Sheets("Combined").Range("A1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).Columns.AutoFit
+End Sub
+
+Sub TotalStockVolume()
+
+Dim tckr As String
+Dim ttlStckVlme As Long
+Dim sht As Worksheet
+Dim lstShtRw, lstTckrRw As Long
+
+
+'creates object variable for the Combined sheet object
+Set sht = Sheets("Combined")
+
+'Gets the last row for ticker column I
+lstTckrRw = sht.Cells(sht.Rows.Count, "I").End(xlUp).Row
+
+'Get the last row of the sheet Combined
+lstShtRw = sht.Cells(sht.Rows.Count, 1).End(xlUp).Row
+
+For i = 2 To lstTckrRw
+
+    'initial ttlStckVlme
+    ttlStckVlme = 0
+    
+    'assigns value of Ticker column I to a variable tckr
+    tckr = sht.Range("I" & i).Value
+    
+    'assigns Total Stock Volumn column L with the sum of all <vol> values for each <ticker> symbol that matches
+    'the ticker symbol in the Ticker column I
+    sht.Range("L" & i).Value = Application.WorksheetFunction.SumIf(Range("A2:G" & lstShtRw), tckr, Range("G2:G" & lstShtRw))
+
+Next i
+Sheets("Combined").Range("A1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).Columns.AutoFit
+End Sub
+
+Sub GreatestPercentageIncrease()
+
+Dim lstRw As Long
+Dim mxVle, crrntCll As Double
+Dim mxVleTckr As String
+
+'initializes the variable mxVle
+mxVle = 0
+
+'assigns the initial <ticker> cell value to mxVleTckr
+mxVleTckr = "A2"
+
+'Sets the Combined worksheet as sht
+Set sht = Sheets("Combined")
+
+'lables category to column O row 2
+sht.Range("O2").Value = "Greatest Percentage Increase"
+
+'finds the last row in column K
+lstRw = sht.Cells(sht.Rows.Count, "K").End(xlUp).Row
+
+'loops through each cell in column Percentage Change (K)
+For i = 2 To lstRw
+    
+    'stores current cell value into crrntCll variable
+    crrntCll = sht.Range("K" & i).Value
+    'if current cell value is greater than last value store it in mxVle
+    If crrntCll > mxVle Then
+    
+        mxVle = crrntCll
+        mxVleTckr = "I" & i
+        
+    End If
+Next i
+'assigns minimum value and ticker symbols to Greatest % Increase section
+sht.Range("Q2").Value = FormatPercent(mxVle)
+sht.Range("P2").Value = sht.Range(mxVleTckr).Value
+Sheets("Combined").Range("A1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).Columns.AutoFit
+End Sub
+
+Sub GreatestPercentageDecrease()
+
+Dim lstRw As Long
+Dim mnVle, crrntCll As Double
+Dim mnVleTckr As String
+
+'initializes the variable mnVle
+mnVle = 0
+
+'assigns the initial <ticker> cell value to mnVleTckr
+mnVleTckr = "A2"
+
+'Sets the Combined worksheet as sht
+Set sht = Sheets("Combined")
+
+'lables category to column O row 3
+sht.Range("O3").Value = "Greatest Percentage Decrease"
+
+'finds the last row in column K
+lstRw = sht.Cells(sht.Rows.Count, "K").End(xlUp).Row
+
+'loops through each cell in column Percentage Change (K)
+For i = 2 To lstRw
+    
+    'stores current cell value into crrntCll variable
+    crrntCll = Range("K" & i).Value
+    
+    'if current cell value is smaller than last value store it in mnVle
+    If crrntCll < mnVle Then
+    
+        mnVle = crrntCll
+        mnVleTckr = "I" & i
+        
+    End If
+Next i
+
+'assigns minimum value and ticker symbols to Greatest % Decrease section
+sht.Range("Q3").Value = FormatPercent(mnVle)
+sht.Range("P3").Value = sht.Range(mnVleTckr).Value
+Sheets("Combined").Range("A1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).Columns.AutoFit
+End Sub
+Sub GreatestTotalVolume()
+
+Dim mxTtlVleTckr As String
+
+'initializes the variable mnVle
+mxTtlVle = 0
+
+'Sets the Combined worksheet as sht
+Set sht = Sheets("Combined")
+
+'lables category to column O row 4
+sht.Range("O4").Value = "Greatest Total Volume"
+
+'finds the last row in column K
+lstRw = sht.Cells(sht.Rows.Count, "L").End(xlUp).Row
+
+'loops through each cell in column Percentage Change (K)
+For i = 2 To lstRw
+    
+    'stores current cell value into crrntCll variable
+    crrntCll = sht.Range("L" & i).Value
+    
+    'if current cell value is smaller than last value store it in mnVle
+    If crrntCll > mxTtlVle Then
+    
+        mxTtlVle = crrntCll
+        mxTtlVleTckr = "I" & i
+        
+    End If
+Next i
+
+'assigns minimum value and ticker symbols to Greatest % Decrease section
+sht.Range("Q4").Value = mxTtlVle
+sht.Range("P4").Value = sht.Range(mxTtlVleTckr).Value
+
+
+Sheets("Combined").Range("A1:Q" & Sheets("Combined").Cells(Rows.Count, 1).End(xlUp).Row).Columns.AutoFit
+End Sub
+
+Sub RunFullProgram()
+    MsgBox "Note:" & vbCrLf & "Program takes about 3 minutes to run!"
+    Call CombinedSheets 'Macro1
+    Call TickerYearlyPercentage 'Macro2
+    Call TotalStockVolume 'Macro3
+    Call GreatestPercentageIncrease 'Macro4
+    Call GreatestPercentageDecrease 'Macro5
+    Call GreatestTotalVolume 'Macro6
+End Sub
+
+
+
